@@ -33,20 +33,26 @@ OPTIONS
 
 	-o filename
 	Specify the prefix for the output files. By default the output files will have
-	a prefix "Serotypes.Summary" if not specified by the user.
+	a prefix "Serotypes.Summary" if not specified by the user (default=Output).
 
 	-c value
-	Specify the minimum query coverage (%) to be used.
+	Specify the minimum query coverage (%) to be used (default=90).
 
 	-p value
-	Specify the minimum identity (%) for all matched regions
+	Specify the minimum identity (%) for all matched regions (default=90)
+
+	-e value
+	Specify the minimum BLAST e-value to be used (default=0.001).
+
+	-l value
+	Specify the minimum length of a match to be used (default=100).
+
 AUTHOR
 	Chrispin Chaguza, Chrispin.Chaguza@liverpool.ac.uk. June 2015
 
 DEPENDENCIES
 	biopython,NCBI BLAST
 """
-
 
 def readUserArguments(UserArgs):
     Options = argparse.ArgumentParser(UserArgs[0],
@@ -99,6 +105,24 @@ def readUserArguments(UserArgs):
                      help="Percent Identity for BLAST HSPs (default=90)",
                      default="90")
 
+    Options.add_argument("-e",
+                     action="store",
+                     nargs=1,
+                     required=False,
+                     metavar="EValue",
+                     dest="EValue",
+                     help="BLAST E-value (default=0.001)",
+                     default="0.001")
+
+    Options.add_argument("-l",
+                     action="store",
+                     nargs=1,
+                     required=False,
+                     metavar="Length",
+                     dest="Length",
+                     help="Minimum HSP match length (default=100)",
+                     default="100")
+
     Options.add_argument("-r",
                      action="store_true",
                      dest="Keep",
@@ -112,7 +136,6 @@ def readUserArguments(UserArgs):
     Options = Options.parse_args()
 
     return Options
-
 
 def checkUserArguments(UserOptions):
     Options = UserOptions
@@ -155,17 +178,31 @@ def checkUserArguments(UserOptions):
     else:
         OptionsVars["p"] = Options.Sequence_Identity[0:]
 
+    if Options.EValue != "0.001":
+        if float(Options.EValue[0:][0]) >= 0:
+            OptionsVars["e"] = Options.EValue[0:][0]
+        else:
+            showErrorMessage("BLAST E-value (-e) should be >0 (default=0.001)")
+    else:
+        OptionsVars["e"] = Options.EValue[0:]
+
+    if Options.Length != "100":
+        if float(Options.Length[0:][0]) >= 0:
+            OptionsVars["l"] = Options.Length[0:][0]
+        else:
+            showErrorMessage("Minimum HSP match length (-l) should be >0 (default=100)")
+    else:
+        OptionsVars["l"] = Options.Length[0:]
+
     OptionsVars["r"] = Options.Keep
 
     return OptionsVars
-
 
 def showErrorMessage(ErrorMessage):
     sys.stdout.write("\nError: " + str(ErrorMessage) + "\n")
     sys.stdout.write("\nUse -h option to see more detailed help\n")
 
     sys.exit()
-
 
 def showProgramStatus(ItemList, ItemPos):
     NumElements = ItemList
@@ -186,7 +223,6 @@ def showProgramStatus(ItemList, ItemPos):
         sys.stdout.flush()
         sys.stdout.write("\r|{0}| {1:.2f}%  {2}".format(HashChars + SpaceChars, PercentChars, ""))
 
-
 def RunBLASTThread(blastCommand, blastOutput):
     try:
         FNULL = open(blastOutput, "wb")
@@ -196,7 +232,6 @@ def RunBLASTThread(blastCommand, blastOutput):
     except (StandardError, KeyboardInterrupt, SystemExit), ErrorText:
         sys.stdout.write("\n" + ErrorText.message + "\n\n")
         sys.exit()
-
 
 def main():
     Args = readUserArguments(sys.argv[:])
@@ -302,7 +337,7 @@ def main():
 
     blastOutputTXT.write("\n")
 
-    print "\n\ndetermining Cps sequence coverage and nucleotide identity"
+    print "\n\ndetermining query sequence coverage and percent identity"
 
     for subjectSeqPos, subjectSeq in enumerate(inputDBNames):
 
@@ -324,7 +359,7 @@ def main():
 
                 for blastRecordAlign in blastRecord.alignments:
                     for hsp in blastRecordAlign.hsps:
-                        if (hsp.expect < 0.0001) and (len(hsp.query) > 400):
+                        if (hsp.expect < float(inputOptions["e"])) and (len(hsp.query) >= int(inputOptions["l"])):
                             tempCoverage.append(len(hsp.query))
 
                             tempIdentity.append(hsp.match.count("|")/float(len(hsp.query)))
