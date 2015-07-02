@@ -240,12 +240,12 @@ def main():
 
     currentThreads = threading.activeCount()
 
-    for geneSeqPos, geneSeq in enumerate(inputOptions["d"]):
-        inSeqFName = os.path.basename(geneSeq).split(".")[0]
+    for isolateSeqPos, isolateSeq in enumerate(inputOptions["d"]):
+        inSeqFName = os.path.basename(isolateSeq).split(".")[0]
         inputDBNames.append(inSeqFName)
 
-        for isolateSeqPos, isolateSeq in enumerate(inputOptions["i"]):
-            geneFName = os.path.basename(isolateSeq).split(".")[0]
+        for geneSeqPos, geneSeq in enumerate(inputOptions["i"]):
+            geneFName = os.path.basename(geneSeq).split(".")[0]
 
             blastCommand = []
 
@@ -274,11 +274,11 @@ def main():
                         print "Unknown error occurred OR the user killed the program"
                         sys.exit()
 
-                    showProgramStatus(len(inputOptions["i"])*len(inputOptions["d"]), geneSeqPos*len(inputOptions["i"])+isolateSeqPos)
+                    showProgramStatus(len(inputOptions["i"])*len(inputOptions["d"]), isolateSeqPos*len(inputOptions["i"])+geneSeqPos)
 
                     break
 
-        showProgramStatus(len(inputOptions["i"])*len(inputOptions["d"]), (geneSeqPos+1)*len(inputOptions["i"]))
+        showProgramStatus(len(inputOptions["i"])*len(inputOptions["d"]), (isolateSeqPos+1)*len(inputOptions["i"]))
 
     while threading.activeCount() > currentThreads:
         time.sleep(2)
